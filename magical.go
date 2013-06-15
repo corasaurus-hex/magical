@@ -9,6 +9,15 @@ import (
 	"time"
 )
 
+const (
+	timestampBits   = uint64(64)
+	macAddressBits  = uint64(48)
+	sequenceBits    = uint64(16)
+
+	macAddressShift = sequenceBits
+	timestampShift  = sequenceBits + macAddressBits
+)
+
 func main() {
 	fmt.Println(getMilliseconds())
 	fmt.Println(getHardwareAddressAsUint64())
