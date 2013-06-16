@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 	"strconv"
 	"time"
+	"regexp"
 )
 
 const (
@@ -18,17 +18,21 @@ const (
 	timestampShift  = sequenceBits + macAddressBits
 )
 
+var (
+	macStripRegexp = regexp.MustCompile("[:.-]")
+)
+
 func main() {
 	fmt.Println(milliseconds())
-	fmt.Println(hardwareAddressAsUint64())
+	fmt.Println(hardwareAddrAsUint64())
 }
 
-func hardwareAddressAsUint64() (uintHardwareAddr uint64) {
-	return convertHardwareAddressToUint64(hardwareAddress())
+func hardwareAddrAsUint64() (uintHardwareAddr uint64) {
+	return convertHardwareAddrToUint64(hardwareAddr())
 }
 
-func convertHardwareAddressToUint64(hardwareAddress net.HardwareAddr) (uintHardwareAddr uint64) {
-	strippedHardwareAddr := strings.Replace(hardwareAddress.String(), ":", "", -1)
+func convertHardwareAddrToUint64(hardwareAddr net.HardwareAddr) (uintHardwareAddr uint64) {
+	strippedHardwareAddr := macStripRegexp.ReplaceAllLiteralString(hardwareAddr.String(), "")
 
 	uintHardwareAddr, err := strconv.ParseUint(strippedHardwareAddr, 16, 48)
 
@@ -39,7 +43,7 @@ func convertHardwareAddressToUint64(hardwareAddress net.HardwareAddr) (uintHardw
 	return uintHardwareAddr
 }
 
-func hardwareAddress() (net.HardwareAddr) {
+func hardwareAddr() (net.HardwareAddr) {
 	interfaces, err := net.Interfaces()
 
 	if err != nil {
