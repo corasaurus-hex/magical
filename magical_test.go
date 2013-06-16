@@ -5,28 +5,28 @@ import (
 	"net"
 )
 
-func TestGetHardwareAddress(t *testing.T) {
+func TestHardwareAddress(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Could not get hardware address: %v", r)
 		}
 	}()
 
-	var hardwareAddress net.HardwareAddr = getHardwareAddress()
+	var hardwareAddress net.HardwareAddr = hardwareAddress()
 
 	if len(hardwareAddress) == 0 {
 		t.Errorf("Got a bad hardware address: %v", hardwareAddress)
 	}
 }
 
-func TestGetHardwareAddressAsUint64(t *testing.T) {
+func TestHardwareAddressAsUint64(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Could not get hardware address as an integer: %v", r)
 		}
 	}()
 
-	var hardwareAddressAsUint64 uint64 = getHardwareAddressAsUint64()
+	var hardwareAddressAsUint64 uint64 = hardwareAddressAsUint64()
 
 	if hardwareAddressAsUint64 < 1 {
 		t.Errorf("Could not get the hardware address as an integer: %v", hardwareAddressAsUint64)
