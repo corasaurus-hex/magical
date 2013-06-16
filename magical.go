@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"regexp"
 	"strconv"
 	"time"
-	"regexp"
 )
 
 const (
-	timestampBits   = uint64(64)
-	macAddressBits  = uint64(48)
-	sequenceBits    = uint64(16)
+	timestampBits  = uint64(64)
+	macAddressBits = uint64(48)
+	sequenceBits   = uint64(16)
 
 	macAddressShift = sequenceBits
 	timestampShift  = sequenceBits + macAddressBits
@@ -43,7 +43,7 @@ func convertHardwareAddrToUint64(hardwareAddr net.HardwareAddr) (uintHardwareAdd
 	return uintHardwareAddr
 }
 
-func hardwareAddr() (net.HardwareAddr) {
+func hardwareAddr() net.HardwareAddr {
 	interfaces, err := net.Interfaces()
 
 	if err != nil {
