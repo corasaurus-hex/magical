@@ -7,15 +7,12 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+	"math/big"
 )
 
 const (
-	timestampBits  = uint64(64)
-	macAddressBits = uint64(48)
-	sequenceBits   = uint64(16)
-
-	macAddressShift = sequenceBits
-	timestampShift  = sequenceBits + macAddressBits
+	macAddressBits = uint(48)
+	sequenceBits   = uint(16)
 )
 
 var (
@@ -23,8 +20,7 @@ var (
 )
 
 func main() {
-	fmt.Println(milliseconds())
-	fmt.Println(hardwareAddrAsUint64())
+	fmt.Println(nextId())
 }
 
 func hardwareAddrAsUint64() (uintHardwareAddr uint64) {
@@ -63,4 +59,22 @@ func hardwareAddr() net.HardwareAddr {
 
 func milliseconds() uint64 {
 	return uint64(time.Now().UnixNano() / 1e6)
+}
+
+func sequence() uint64 {
+	return uint64(0)
+}
+
+func mergeNumbers(now uint64, mac uint64, seq uint64) string {
+	i := new(big.Int)
+	i.SetUint64(now)
+	i.Lsh(i, macAddressBits)
+	i.Or(new(big.Int).SetUint64(mac), i)
+	i.Lsh(i, sequenceBits)
+	i.Or(new(big.Int).SetUint64(seq), i)
+	return i.String()
+}
+
+func nextId() string {
+	return mergeNumbers(milliseconds(), hardwareAddrAsUint64(), sequence())
 }
