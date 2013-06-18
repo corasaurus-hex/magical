@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"regexp"
 	"strconv"
+	"strings"
 	"time"
 	"math/big"
 )
@@ -15,44 +15,43 @@ const (
 	sequenceBits   = uint(16)
 )
 
-var (
-	macStripRegexp = regexp.MustCompile("[:.-]")
-)
-
 func main() {
 	fmt.Println(nextId())
 }
 
-func hardwareAddrAsUint64() (uintHardwareAddr uint64) {
-	return convertHardwareAddrToUint64(hardwareAddr())
+func getHardwareAddrAsUint64() (uintHardwareAddr uint64) {
+	return hardwareAddrToUint64(getHardwareAddr())
 }
 
-func convertHardwareAddrToUint64(hardwareAddr net.HardwareAddr) (uintHardwareAddr uint64) {
-	strippedHardwareAddr := macStripRegexp.ReplaceAllLiteralString(hardwareAddr.String(), "")
+func hardwareAddrToUint64(h net.HardwareAddr) (uintHardwareAddr uint64) {
+	s := h.String()
+	s = strings.Replace(s, ":", "", -1)
+	s = strings.Replace(s, ".", "", -1)
+	s = strings.Replace(s, "-", "", -1)
 
-	uintHardwareAddr, err := strconv.ParseUint(strippedHardwareAddr, 16, 48)
+	u, err := strconv.ParseUint(s, 16, 48)
 
 	if err != nil {
-		log.Fatalf("Unable to parse %q as an integer: %q", strippedHardwareAddr, err)
+		log.Fatalf("Unable to parse %q as an integer: %q", s, err)
 	}
 
-	return uintHardwareAddr
+	return u
 }
 
-func hardwareAddr() net.HardwareAddr {
-	interfaces, err := net.Interfaces()
+func getHardwareAddr() net.HardwareAddr {
+	ifs, err := net.Interfaces()
 
 	if err != nil {
-		log.Fatalf("Could not get any network interfaces: %v", err)
+		log.Fatalf("Could not get any network interfaces: %v, %+v", err, ifs)
 	}
 
-	for _, value := range interfaces {
-		if len(value.HardwareAddr) > 0 {
-			return value.HardwareAddr
+	for _, i := range ifs {
+		if len(i.HardwareAddr) > 0 {
+			return i.HardwareAddr
 		}
 	}
 
-	log.Fatalf("No interface found with a MAC address: %v", interfaces)
+	log.Fatalf("No interface found with a MAC address: %+v", ifs)
 
 	return nil
 }
@@ -76,5 +75,5 @@ func mergeNumbers(now uint64, mac uint64, seq uint64) string {
 }
 
 func nextId() string {
-	return mergeNumbers(milliseconds(), hardwareAddrAsUint64(), sequence())
+	return mergeNumbers(milliseconds(), getHardwareAddrAsUint64(), sequence())
 }
