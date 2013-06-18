@@ -7,10 +7,12 @@ import (
 	"testing"
 )
 
-var macColon string = "34:B6:02:61:DE:1B"
-var macDash string = "34-B6-02-61-DE-1B"
-var macDot string = "34B6.0261.DE1B"
-var macStripRegexp = regexp.MustCompile("[:.-]")
+var (
+	macColon       = "34:B6:02:61:DE:1B"
+	macDash        = "34-B6-02-61-DE-1B"
+	macDot         = "34B6.0261.DE1B"
+	macStripRegexp = regexp.MustCompile("[:.-]")
+)
 
 func TestGetHardwareAddr(t *testing.T) {
 	defer func() {
@@ -58,7 +60,7 @@ func TestHardwareAddrToUint64WithGoodValue(t *testing.T) {
 
 func BenchmarkMilliseconds(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		milliseconds()
+		getTimeInMilliseconds()
 	}
 }
 
@@ -68,14 +70,8 @@ func BenchmarkHardwareAddressAsUint64(b *testing.B) {
 	}
 }
 
-func BenchmarkSequence(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		sequence()
-	}
-}
-
 func BenchmarkMergeNumbers(b *testing.B) {
-	x, y, z := milliseconds(), getHardwareAddrAsUint64(), sequence()
+	x, y, z := getTimeInMilliseconds(), getHardwareAddrAsUint64(), uint64(0)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mergeNumbers(x, y, z)
