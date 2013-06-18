@@ -43,7 +43,7 @@ func hardwareAddr() net.HardwareAddr {
 	interfaces, err := net.Interfaces()
 
 	if err != nil {
-		log.Fatalf("Could not get any network interfaces", err)
+		log.Fatalf("Could not get any network interfaces: %v", err)
 	}
 
 	for _, value := range interfaces {

@@ -48,3 +48,29 @@ func TestConvertHardwareAddrToUint64WithGoodValue(t *testing.T) {
 		t.Errorf("Expected %v == %v", "34:B6:02:61:DE:1B", 57956328660507)
 	}
 }
+
+func BenchmarkMilliseconds(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		milliseconds()
+	}
+}
+
+func BenchmarkHardwareAddressAsUint64(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		hardwareAddrAsUint64()
+	}
+}
+
+func BenchmarkSequence(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		sequence()
+	}
+}
+
+func BenchmarkMergeNumbers(b *testing.B) {
+	x, y, z := milliseconds(), hardwareAddrAsUint64(), sequence()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mergeNumbers(x, y, z)
+	}
+}
