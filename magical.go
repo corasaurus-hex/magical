@@ -29,34 +29,35 @@ func main() {
 	timeInMs = getTimeInMilliseconds()
 	hardwareAddr = getHardwareAddrUint64()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		count, err := strconv.ParseInt(r.FormValue("count"), 0, 0)
-
-		if count <= 0 || err != nil {
-			count = 1
-		} else if count > maxIds {
-			count = maxIds
-		}
-
-		ids := make([]string, count)
-		castedCount := int(count)
-
-		for i := 0; i < castedCount; i++ {
-			id, err := nextId()
-
-			if err != nil {
-				w.WriteHeader(503)
-				io.WriteString(w, err.Error())
-				return
-			}
-
-			ids[i] = id
-		}
-
-		io.WriteString(w, strings.Join(ids, "\n"))
-	})
-
+	http.HandleFunc("/", serveIds)
 	http.ListenAndServe(":8080", nil)
+}
+
+func serveIds(w http.ResponseWriter, r *http.Request) {
+	count, err := strconv.ParseInt(r.FormValue("count"), 0, 0)
+
+	if count <= 0 || err != nil {
+		count = 1
+	} else if count > maxIds {
+		count = maxIds
+	}
+
+	ids := make([]string, count)
+	castedCount := int(count)
+
+	for i := 0; i < castedCount; i++ {
+		id, err := nextId()
+
+		if err != nil {
+			w.WriteHeader(503)
+			io.WriteString(w, err.Error())
+			return
+		}
+
+		ids[i] = id
+	}
+
+	io.WriteString(w, strings.Join(ids, "\n"))
 }
 
 func getHardwareAddrUint64() uint64 {
