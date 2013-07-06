@@ -21,8 +21,11 @@ var (
 func main() {
 	timeInMs = getTimeInMilliseconds()
 	hardwareAddr = getHardwareAddrUint64()
+	var id string
+
 	for i := 0; i < 1000; i++ {
-		fmt.Printf("New value: %v\n", nextId())
+		id, _ = nextId()
+		fmt.Printf("New value: %v\n", id)
 	}
 }
 
@@ -66,7 +69,7 @@ func mergeNumbers(now uint64, mac uint64, seq uint64) string {
 	return fmt.Sprintf("%012x%016x%04x", now, mac, seq)
 }
 
-func nextId() string {
+func nextId() (string, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -79,5 +82,5 @@ func nextId() string {
 		sequence = 0
 	}
 
-	return mergeNumbers(timeInMs, hardwareAddr, sequence)
+	return mergeNumbers(timeInMs, hardwareAddr, sequence), nil
 }
