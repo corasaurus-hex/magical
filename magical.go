@@ -54,7 +54,7 @@ func serveIds(w http.ResponseWriter, r *http.Request) {
 		count = maxIds
 	}
 
-	ids, err := generateIds(int(count))
+	ids, err := generateHexIds(int(count))
 
 	if err != nil {
 		w.WriteHeader(503)
@@ -62,13 +62,7 @@ func serveIds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hexStrings := make([]string, count)
-
-	for i, val := range ids {
-		hexStrings[i] = val.Hex()
-	}
-
-	io.WriteString(w, strings.Join(hexStrings, "\n"))
+	io.WriteString(w, strings.Join(ids, "\n"))
 }
 
 func getHardwareAddrUint64() uint64 {
@@ -109,6 +103,22 @@ func getTimeInMilliseconds() uint64 {
 
 func mergeNumbers(now uint64, mac uint64, seq uint64) string {
 	return fmt.Sprintf("%012x%016x%04x", now, mac, seq)
+}
+
+func generateHexIds(count int) ([]string, error) {
+	ids, err := generateIds(count)
+
+	if err != nil {
+		return nil, err
+	}
+
+	hexIds := make([]string, len(ids))
+
+	for i := 0; i < count; i++ {
+		hexIds[i] = ids[i].Hex()
+	}
+
+	return hexIds, nil
 }
 
 func generateIds(count int) ([]id, error) {

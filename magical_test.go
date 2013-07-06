@@ -99,3 +99,35 @@ func BenchmarkGenerateIds10(b *testing.B) {
 		generateIds(10)
 	}
 }
+
+func BenchmarkGenerateHexIds1(b *testing.B) {
+	setup()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		generateHexIds(1)
+	}
+}
+
+func BenchmarkGenerateHexIds2(b *testing.B) {
+	setup()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		generateHexIds(2)
+	}
+}
+
+func BenchmarkGenerateHexIds5(b *testing.B) {
+	setup()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		generateHexIds(5)
+	}
+}
+
+func BenchmarkGenerateHexIds10(b *testing.B) {
+	setup()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		generateHexIds(10)
+	}
+}
