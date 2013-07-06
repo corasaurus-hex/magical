@@ -32,7 +32,7 @@ type id struct {
 	seq  uint64
 }
 
-func (i id) Hex() string {
+func (i *id) Hex() string {
 	return fmt.Sprintf("%012x%016x%04x", i.time, i.mac, i.seq)
 }
 
