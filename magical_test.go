@@ -38,11 +38,11 @@ func BenchmarkHardwareAddressAsUint64(b *testing.B) {
 	}
 }
 
-func BenchmarkMergeNumbers(b *testing.B) {
-	x, y, z := getTimeInMilliseconds(), getHardwareAddrUint64(), uint64(0)
+func BenchmarkGeneratingHex(b *testing.B) {
+	t := id{getTimeInMilliseconds(), getHardwareAddrUint64(), uint64(0)}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		mergeNumbers(x, y, z)
+		t.Hex()
 	}
 }
 
