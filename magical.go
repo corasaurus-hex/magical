@@ -99,7 +99,6 @@ func generateIds(count int) ([]string, error) {
 
 	newTimeInMs := getTimeInMilliseconds()
 
-
 	if newTimeInMs > timeInMs {
 		timeInMs = newTimeInMs
 		sequence = 0
