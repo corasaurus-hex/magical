@@ -39,8 +39,9 @@ func main() {
 		}
 
 		ids := make([]string, count)
+		castedCount := int(count)
 
-		for i := 0; i < int(count); i++ {
+		for i := 0; i < castedCount; i++ {
 			id, err := nextId()
 
 			if err != nil {
