@@ -68,10 +68,34 @@ func BenchmarkStringReplaceSome(b *testing.B) {
 	}
 }
 
-func BenchmarkNextId(b *testing.B) {
+func BenchmarkGenerateIds1(b *testing.B) {
 	setup()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		nextId()
+		generateIds(1)
+	}
+}
+
+func BenchmarkGenerateIds2(b *testing.B) {
+	setup()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		generateIds(2)
+	}
+}
+
+func BenchmarkGenerateIds5(b *testing.B) {
+	setup()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		generateIds(5)
+	}
+}
+
+func BenchmarkGenerateIds10(b *testing.B) {
+	setup()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		generateIds(10)
 	}
 }

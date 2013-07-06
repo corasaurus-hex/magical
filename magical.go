@@ -42,19 +42,12 @@ func serveIds(w http.ResponseWriter, r *http.Request) {
 		count = maxIds
 	}
 
-	ids := make([]string, count)
-	castedCount := int(count)
+	ids, err := generateIds(int(count))
 
-	for i := 0; i < castedCount; i++ {
-		id, err := nextId()
-
-		if err != nil {
-			w.WriteHeader(503)
-			io.WriteString(w, err.Error())
-			return
-		}
-
-		ids[i] = id
+	if err != nil {
+		w.WriteHeader(503)
+		io.WriteString(w, err.Error())
+		return
 	}
 
 	io.WriteString(w, strings.Join(ids, "\n"))
@@ -100,20 +93,26 @@ func mergeNumbers(now uint64, mac uint64, seq uint64) string {
 	return fmt.Sprintf("%012x%016x%04x", now, mac, seq)
 }
 
-func nextId() (string, error) {
+func generateIds(count int) ([]string, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	newTimeInMs := getTimeInMilliseconds()
 
-	if newTimeInMs == timeInMs {
-		sequence += 1
-	} else if newTimeInMs > timeInMs {
+
+	if newTimeInMs > timeInMs {
 		timeInMs = newTimeInMs
 		sequence = 0
-	} else {
-		return "", fmt.Errorf("Time has reversed! Old time: %v - New time: %v", timeInMs, newTimeInMs)
+	} else if newTimeInMs < timeInMs {
+		return nil, fmt.Errorf("Time has reversed! Old time: %v - New time: %v", timeInMs, newTimeInMs)
 	}
 
-	return mergeNumbers(timeInMs, hardwareAddr, sequence), nil
+	ids := make([]string, count)
+
+	for i := 0; i < count; i++ {
+		sequence++
+		ids[i] = mergeNumbers(timeInMs, hardwareAddr, sequence)
+	}
+
+	return ids, nil
 }
