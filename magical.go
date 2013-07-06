@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -33,7 +35,19 @@ type id struct {
 }
 
 func (i *id) Hex() string {
-	return fmt.Sprintf("%012x%016x%04x", i.time, i.mac, i.seq)
+	t := make([]byte, 8)
+	m := make([]byte, 8)
+	s := make([]byte, 8)
+	a := make([]byte, 16)
+	binary.BigEndian.PutUint64(t, i.time)
+	binary.BigEndian.PutUint64(m, i.mac)
+	binary.BigEndian.PutUint64(s, i.seq)
+
+	copy(a[0:6], t[2:8])
+	copy(a[6:14], m)
+	copy(a[14:16], s[6:8])
+
+	return hex.EncodeToString(a)
 }
 
 func main() {
