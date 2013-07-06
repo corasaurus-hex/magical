@@ -10,11 +10,6 @@ import (
 	"time"
 )
 
-const (
-	macAddressBits = uint(64)
-	sequenceBits   = uint(16)
-)
-
 var (
 	timeInMs       uint64
 	hardwareAddr   uint64
