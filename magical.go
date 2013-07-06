@@ -77,9 +77,11 @@ func nextId() (string, error) {
 
 	if newTimeInMs == timeInMs {
 		sequence += 1
-	} else {
+	} else if newTimeInMs > timeInMs {
 		timeInMs = newTimeInMs
 		sequence = 0
+	} else {
+		return "", fmt.Errorf("Time has reversed! Old time: %v - New time: %v", timeInMs, newTimeInMs)
 	}
 
 	return mergeNumbers(timeInMs, hardwareAddr, sequence), nil
