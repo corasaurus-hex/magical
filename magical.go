@@ -2,12 +2,19 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+)
+
+const (
+	maxIds = 10
 )
 
 var (
@@ -21,12 +28,36 @@ var (
 func main() {
 	timeInMs = getTimeInMilliseconds()
 	hardwareAddr = getHardwareAddrUint64()
-	var id string
 
-	for i := 0; i < 1000; i++ {
-		id, _ = nextId()
-		fmt.Printf("New value: %v\n", id)
-	}
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		count, err := strconv.ParseInt(r.FormValue("count"), 0, 0)
+
+		if count <= 0 || err != nil {
+			count = 1
+		} else if count > maxIds {
+			count = maxIds
+		}
+
+		castedCount := int(count)
+
+		ids := make([]string, castedCount)
+
+		for i := 0; i < castedCount; i++ {
+			id, err := nextId()
+
+			if err != nil {
+				w.WriteHeader(503)
+				io.WriteString(w, err.Error())
+				return
+			}
+
+			ids[i] = id
+		}
+
+		io.WriteString(w, strings.Join(ids, "\n"))
+	})
+
+	http.ListenAndServe(":8080", nil)
 }
 
 func getHardwareAddrUint64() uint64 {
