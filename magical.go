@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,7 +26,18 @@ var (
 	mutex          = new(sync.Mutex)
 )
 
+type id struct {
+	time uint64
+	mac  uint64
+	seq  uint64
+}
+
+func (i id) Hex() string {
+	return fmt.Sprintf("%012x%016x%04x", i.time, i.mac, i.seq)
+}
+
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	timeInMs = getTimeInMilliseconds()
 	hardwareAddr = getHardwareAddrUint64()
 
@@ -50,7 +62,13 @@ func serveIds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	io.WriteString(w, strings.Join(ids, "\n"))
+	hexStrings := make([]string, count)
+
+	for i, val := range ids {
+		hexStrings[i] = val.Hex()
+	}
+
+	io.WriteString(w, strings.Join(hexStrings, "\n"))
 }
 
 func getHardwareAddrUint64() uint64 {
@@ -93,7 +111,9 @@ func mergeNumbers(now uint64, mac uint64, seq uint64) string {
 	return fmt.Sprintf("%012x%016x%04x", now, mac, seq)
 }
 
-func generateIds(count int) ([]string, error) {
+func generateIds(count int) ([]id, error) {
+	ids := make([]id, count)
+
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -106,11 +126,9 @@ func generateIds(count int) ([]string, error) {
 		return nil, fmt.Errorf("Time has reversed! Old time: %v - New time: %v", timeInMs, newTimeInMs)
 	}
 
-	ids := make([]string, count)
-
 	for i := 0; i < count; i++ {
 		sequence++
-		ids[i] = mergeNumbers(timeInMs, hardwareAddr, sequence)
+		ids[i] = id{timeInMs, hardwareAddr, sequence}
 	}
 
 	return ids, nil
