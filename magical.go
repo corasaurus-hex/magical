@@ -101,10 +101,6 @@ func getTimeInMilliseconds() uint64 {
 	return uint64(time.Now().UnixNano() / 1e6)
 }
 
-func mergeNumbers(now uint64, mac uint64, seq uint64) string {
-	return fmt.Sprintf("%012x%016x%04x", now, mac, seq)
-}
-
 func generateHexIds(count int) ([]string, error) {
 	ids, err := generateIds(count)
 
