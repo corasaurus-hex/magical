@@ -11,6 +11,11 @@ var (
 	macDot   = "34B6.0261.DE1B"
 )
 
+func setup() {
+	timeInMs = getTimeInMilliseconds()
+	hardwareAddr = getHardwareAddrUint64()
+}
+
 func TestGetHardwareAddr(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -42,7 +47,6 @@ func BenchmarkMergeNumbers(b *testing.B) {
 }
 
 func BenchmarkRegexpReplaceAll(b *testing.B) {
-	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		macStripRegexp.ReplaceAllLiteralString(macColon, "")
 	}
@@ -61,5 +65,13 @@ func BenchmarkStringReplaceSome(b *testing.B) {
 		strings.Replace(macColon, ":", "", 5)
 		strings.Replace(macDash, "-", "", 5)
 		strings.Replace(macDot, ".", "", 2)
+	}
+}
+
+func BenchmarkNextId(b *testing.B) {
+	setup()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		nextId()
 	}
 }
