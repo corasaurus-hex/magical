@@ -3,71 +3,64 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/big"
 	"net"
+	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
 
 const (
-	macAddressBits = uint(48)
+	macAddressBits = uint(64)
 	sequenceBits   = uint(16)
 )
 
 var (
-	timeInMs     uint64
-	hardwareAddr uint64
-	sequence     uint64
-	mutex        *sync.Mutex
+	timeInMs       uint64
+	hardwareAddr   uint64
+	sequence       = uint64(0)
+	macStripRegexp = regexp.MustCompile(`[^a-fA-F0-9]`)
+	mutex          = new(sync.Mutex)
 )
 
 func main() {
 	timeInMs = getTimeInMilliseconds()
-	hardwareAddr = getHardwareAddrAsUint64()
-	sequence = 0
-	mutex = new(sync.Mutex)
+	hardwareAddr = getHardwareAddrUint64()
 	for i := 0; i < 1000; i++ {
 		fmt.Printf("New value: %v\n", nextId())
 	}
 }
 
-func getHardwareAddrAsUint64() (uintHardwareAddr uint64) {
-	return hardwareAddrToUint64(getHardwareAddr())
-}
-
-func hardwareAddrToUint64(h net.HardwareAddr) (uintHardwareAddr uint64) {
-	s := h.String()
-	s = strings.Replace(s, ":", "", -1)
-	s = strings.Replace(s, ".", "", -1)
-	s = strings.Replace(s, "-", "", -1)
-
-	u, err := strconv.ParseUint(s, 16, 48)
-
-	if err != nil {
-		log.Fatalf("Unable to parse %q as an integer: %q", s, err)
-	}
-
-	return u
-}
-
-func getHardwareAddr() net.HardwareAddr {
+func getHardwareAddrUint64() uint64 {
 	ifs, err := net.Interfaces()
 
 	if err != nil {
 		log.Fatalf("Could not get any network interfaces: %v, %+v", err, ifs)
 	}
 
+	var hwAddr net.HardwareAddr
+
 	for _, i := range ifs {
 		if len(i.HardwareAddr) > 0 {
-			return i.HardwareAddr
+			hwAddr = i.HardwareAddr
+			break
 		}
 	}
 
-	log.Fatalf("No interface found with a MAC address: %+v", ifs)
+	if hwAddr == nil {
+		log.Fatalf("No interface found with a MAC address: %+v", ifs)
+	}
 
-	return nil
+	mac := hwAddr.String()
+	hex := macStripRegexp.ReplaceAllLiteralString(mac, "")
+
+	u, err := strconv.ParseUint(hex, 16, 64)
+
+	if err != nil {
+		log.Fatalf("Unable to parse %v (from mac %v) as an integer: %v", hex, mac, err)
+	}
+
+	return u
 }
 
 func getTimeInMilliseconds() uint64 {
@@ -75,13 +68,7 @@ func getTimeInMilliseconds() uint64 {
 }
 
 func mergeNumbers(now uint64, mac uint64, seq uint64) string {
-	i := new(big.Int)
-	i.SetUint64(now)
-	i.Lsh(i, macAddressBits)
-	i.Or(new(big.Int).SetUint64(mac), i)
-	i.Lsh(i, sequenceBits)
-	i.Or(new(big.Int).SetUint64(seq), i)
-	return fmt.Sprintf("%x", i)
+	return fmt.Sprintf("%012x%016x%04x", now, mac, seq)
 }
 
 func nextId() string {
