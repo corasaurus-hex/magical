@@ -38,11 +38,9 @@ func main() {
 			count = maxIds
 		}
 
-		castedCount := int(count)
+		ids := make([]string, count)
 
-		ids := make([]string, castedCount)
-
-		for i := 0; i < castedCount; i++ {
+		for i := 0; i < int(count); i++ {
 			id, err := nextId()
 
 			if err != nil {
