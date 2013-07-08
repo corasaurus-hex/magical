@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	maxIds = 10
+	defaultCount = 1
+	maxIds       = 10
 )
 
 var (
@@ -49,23 +50,20 @@ func (i *id) Hex() string {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	timeInMs = getTimeInMilliseconds()
-	hardwareAddr = getHardwareAddrUint64()
+	setup()
 
 	http.HandleFunc("/", serveIds)
 	http.ListenAndServe(":8080", nil)
 }
 
+func setup() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	timeInMs = getTimeInMilliseconds()
+	hardwareAddr = getHardwareAddrUint64()
+}
+
 func serveIds(w http.ResponseWriter, r *http.Request) {
-	count, err := strconv.ParseInt(r.FormValue("count"), 0, 0)
-
-	if count <= 0 || err != nil {
-		count = 1
-	} else if count > maxIds {
-		count = maxIds
-	}
-
+	count, _ := strconv.ParseInt(r.FormValue("count"), 0, 0)
 	ids, err := generateHexIds(int(count))
 
 	if err != nil {
@@ -130,6 +128,12 @@ func generateHexIds(count int) ([]string, error) {
 }
 
 func generateIds(count int) ([]id, error) {
+	if count < 1 {
+		count = defaultCount
+	} else if count > maxIds {
+		count = maxIds
+	}
+	
 	ids := make([]id, count)
 
 	mutex.Lock()
