@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
+	"errors"
 	"io"
 	"log"
 	"net"
@@ -13,66 +13,62 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
-const (
-	defaultCount = 1
-	maxIds       = 10
-)
-
-var (
-	timeInMs       uint64
-	hardwareAddr   uint64
-	sequence       = uint64(0)
-	macStripRegexp = regexp.MustCompile(`[^a-fA-F0-9]`)
-	mutex          = new(sync.Mutex)
-)
-
-type id struct {
+type idGenerator struct {
 	time uint64
 	mac  uint64
-	seq  uint64
+	seq  *uint64
 }
 
-func (i *id) Hex() string {
+func (i *idGenerator) NextHex() (string, error) {
+	seq := atomic.AddUint64(i.seq, 1)
+
+	if seq > maxSequence {
+		return "", errors.New("Ran out of numbers for this timestamp")
+	}
+
 	t := make([]byte, 8)
 	s := make([]byte, 8)
 	a := make([]byte, 16)
 	binary.BigEndian.PutUint64(t, i.time)
 	binary.BigEndian.PutUint64(a[6:14], i.mac)
-	binary.BigEndian.PutUint64(s, i.seq)
+	binary.BigEndian.PutUint64(s, seq)
 
 	copy(a[0:6], t[2:8])
 	copy(a[14:16], s[6:8])
 
-	return hex.EncodeToString(a)
+	return hex.EncodeToString(a), nil
 }
 
-func main() {
-	setup()
-
-	http.HandleFunc("/", serveIds)
-	http.ListenAndServe(":8080", nil)
+type idGenerators struct {
+	time      uint64
+	mac       uint64
+	generator *idGenerator
+	mutex     *sync.Mutex
 }
 
-func setup() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	timeInMs = getTimeInMilliseconds()
-	hardwareAddr = getHardwareAddrUint64()
-}
+func (i *idGenerators) GetGenerator() (*idGenerator, error) {
+	time := getTimeInMilliseconds()
 
-func serveIds(w http.ResponseWriter, r *http.Request) {
-	count, _ := strconv.ParseInt(r.FormValue("count"), 0, 0)
-	ids, err := generateHexIds(int(count))
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
 
-	if err != nil {
-		w.WriteHeader(503)
-		io.WriteString(w, err.Error())
-		return
+	if time == i.time {
+		return i.generator, nil
+	} else if time > i.time {
+		i.generator = &idGenerator{time, i.mac, new(uint64)}
+		i.time      = time
+		return i.generator, nil
 	}
 
-	io.WriteString(w, strings.Join(ids, "\n"))
+	return nil, errors.New("time went backwards")
+}
+
+func getTimeInMilliseconds() uint64 {
+	return uint64(time.Now().UnixNano() / 1e6)
 }
 
 func getHardwareAddrUint64() uint64 {
@@ -107,50 +103,66 @@ func getHardwareAddrUint64() uint64 {
 	return u
 }
 
-func getTimeInMilliseconds() uint64 {
-	return uint64(time.Now().UnixNano() / 1e6)
+const (
+	defaultCount = 1
+	maxIds       = 65535
+	maxSequence  = 65535
+)
+
+var (
+	generators     *idGenerators
+	macStripRegexp = regexp.MustCompile(`[^a-fA-F0-9]`)
+)
+
+func main() {
+	setup()
+
+	http.HandleFunc("/", serveIds)
+	http.ListenAndServe(":8080", nil)
 }
 
-func generateHexIds(count int) ([]string, error) {
-	ids, err := generateIds(count)
+func setup() {
+	generators = &idGenerators{}
+	generators.time = getTimeInMilliseconds()
+	generators.mac = getHardwareAddrUint64()
+	generators.generator = &idGenerator{generators.time, generators.mac, new(uint64)}
+	generators.mutex = new(sync.Mutex)
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
+
+func serveIds(w http.ResponseWriter, r *http.Request) {
+	count, _ := strconv.ParseInt(r.FormValue("count"), 0, 0)
+	ids, err := generateIds(int(count))
 
 	if err != nil {
-		return nil, err
+		w.WriteHeader(503)
+		io.WriteString(w, err.Error())
+		return
 	}
 
-	hexIds := make([]string, len(ids))
-
-	for i := 0; i < count; i++ {
-		hexIds[i] = ids[i].Hex()
-	}
-
-	return hexIds, nil
+	io.WriteString(w, strings.Join(ids, "\n"))
 }
 
-func generateIds(count int) ([]id, error) {
+func generateIds(count int) ([]string, error) {
 	if count < 1 {
 		count = defaultCount
 	} else if count > maxIds {
 		count = maxIds
 	}
-	
-	ids := make([]id, count)
 
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	newTimeInMs := getTimeInMilliseconds()
-
-	if newTimeInMs > timeInMs {
-		timeInMs = newTimeInMs
-		sequence = 0
-	} else if newTimeInMs < timeInMs {
-		return nil, fmt.Errorf("Time has reversed! Old time: %v - New time: %v", timeInMs, newTimeInMs)
+	generator, err := generators.GetGenerator()
+	if err != nil {
+		return nil, err
 	}
 
+	ids := make([]string, count)
+
 	for i := 0; i < count; i++ {
-		sequence++
-		ids[i] = id{timeInMs, hardwareAddr, sequence}
+		ids[i], err = generator.NextHex()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return ids, nil
