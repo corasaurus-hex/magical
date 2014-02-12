@@ -75,7 +75,6 @@ func BenchmarkGenerateIds30(b *testing.B) {
 }
 
 func BenchmarkGenerateIds40(b *testing.B) {
-
 	setup()
 	n := 40
 	quit := make(chan bool, n)

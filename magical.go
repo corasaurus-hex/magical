@@ -50,9 +50,7 @@ type idGenerators struct {
 	mutex     *sync.Mutex
 }
 
-func (i *idGenerators) GetGenerator() (*idGenerator, error) {
-	time := getTimeInMilliseconds()
-
+func (i *idGenerators) GetGenerator(time uint64) (*idGenerator, error) {
 	i.mutex.Lock()
 	defer i.mutex.Unlock()
 
@@ -65,6 +63,26 @@ func (i *idGenerators) GetGenerator() (*idGenerator, error) {
 	}
 
 	return nil, errors.New("time went backwards")
+}
+
+type idGeneratorsPartitions struct {
+	generators [100]*idGenerators
+}
+
+func (i *idGeneratorsPartitions) Setup() {
+	for x := 0; x < 100; x++ {
+		igs := &idGenerators{}
+		igs.time = getTimeInMilliseconds()
+		igs.mac = getHardwareAddrUint64()
+		igs.generator = &idGenerator{igs.time, igs.mac, new(uint64)}
+		igs.mutex = new(sync.Mutex)
+		i.generators[x] = igs
+	}
+}
+
+func (i *idGeneratorsPartitions) GetGenerator(time uint64) (*idGenerator, error) {
+	ig, err := i.generators[time % 100].GetGenerator(time)
+	return ig, err
 }
 
 func getTimeInMilliseconds() uint64 {
@@ -110,7 +128,7 @@ const (
 )
 
 var (
-	generators     *idGenerators
+	generators     = &idGeneratorsPartitions{}
 	macStripRegexp = regexp.MustCompile(`[^a-fA-F0-9]`)
 )
 
@@ -122,12 +140,7 @@ func main() {
 }
 
 func setup() {
-	generators = &idGenerators{}
-	generators.time = getTimeInMilliseconds()
-	generators.mac = getHardwareAddrUint64()
-	generators.generator = &idGenerator{generators.time, generators.mac, new(uint64)}
-	generators.mutex = new(sync.Mutex)
-
+	generators.Setup()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
@@ -151,7 +164,7 @@ func generateIds(count int) ([]string, error) {
 		count = maxIds
 	}
 
-	generator, err := generators.GetGenerator()
+	generator, err := generators.GetGenerator(getTimeInMilliseconds())
 	if err != nil {
 		return nil, err
 	}
